@@ -1,0 +1,21 @@
+[submodule "deps/SDL"]
+	path = deps/SDL
+	url = https://github.com/libsdl-org/SDL.git
+[submodule "src/tempo"]
+	path = src/tempo
+	url = https://github.com/snailbaron/tempo.git
+[submodule "src/ve"]
+	path = src/ve
+	url = https://github.com/snailbaron/ve.git
+[submodule "deps/Catch2"]
+	path = deps/Catch2
+	url = https://github.com/catchorg/Catch2.git
+[submodule "src/arg"]
+	path = src/arg
+	url = https://github.com/snailbaron/arg.git
+[submodule "deps/flatbuffers"]
+	path = deps/flatbuffers
+	url = https://github.com/google/flatbuffers.git
+[submodule "deps/aseprite"]
+	path = deps/aseprite
+	url = https://github.com/aseprite/aseprite.git

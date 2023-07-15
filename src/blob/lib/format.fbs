@@ -1,0 +1,45 @@
+namespace blob.fb;
+
+struct Sheet {
+  name:string;
+  data:[uint8];
+}
+
+struct Frame {
+  x:uint32;
+  y:uint32;
+  w:uint32;
+  h:uint32;
+  ms:uint32;
+}
+
+struct Animation {
+  sheet:uint32;
+  frames:[Frame];
+}
+
+struct AnimationBySpeed {
+  stand:Animation;
+  walk:Animation;
+  run:Animation;
+}
+
+struct CharacterAnimations {
+  up:AnimationBySpeed;
+  down:AnimationBySpeed;
+  left:AnimationBySpeed;
+  right:AnimationBySpeed;
+}
+
+struct Character {
+  name:string;
+  animations:CharacterAnimations;
+}
+
+struct Blob {
+  sheets:[Sheet];
+  characters:[Character];
+  textures:[Animation];
+}
+
+root_type Blob;
