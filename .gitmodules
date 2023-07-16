@@ -19,3 +19,9 @@
 [submodule "deps/aseprite"]
 	path = deps/aseprite
 	url = https://github.com/aseprite/aseprite.git
+[submodule "deps/json"]
+	path = deps/json
+	url = https://github.com/nlohmann/json.git
+[submodule "src/fi"]
+	path = src/fi
+	url = https://github.com/snailbaron/fi.git

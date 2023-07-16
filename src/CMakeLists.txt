@@ -5,6 +5,7 @@ else()
 endif()
 
 add_subdirectory(arg)
+add_subdirectory(fi)
 add_subdirectory(tempo)
 add_subdirectory(ve)
 

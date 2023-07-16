@@ -1,5 +1,0 @@
-namespace blob {
-
-
-
-} // namespace blob
