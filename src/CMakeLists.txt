@@ -5,10 +5,13 @@ else()
 endif()
 
 add_subdirectory(arg)
+add_subdirectory(evening)
 add_subdirectory(fi)
 add_subdirectory(tempo)
+add_subdirectory(thing)
 add_subdirectory(ve)
 
 add_subdirectory(gfx)
 add_subdirectory(blob)
-add_subdirectory(asset-preview)
+
+add_subdirectory(touch)

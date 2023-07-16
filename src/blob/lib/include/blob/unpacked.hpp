@@ -1,10 +1,9 @@
 #pragma once
 
+#include <blob/types.hpp>
+
 #include <cstdint>
-#include <filesystem>
-#include <istream>
 #include <map>
-#include <ostream>
 #include <string>
 #include <vector>
 
@@ -18,28 +17,8 @@ struct Frame {
     uint32_t ms = 0;
 };
 
-enum class Direction {
-    Up,
-    Down,
-    Left,
-    Right,
-};
-
-std::ostream& operator<<(std::ostream& output, const Direction& direction);
-std::istream& operator>>(std::istream& input, Direction& direction);
-
-enum class Speed {
-    Stand,
-    Walk,
-    Run,
-};
-
-std::ostream& operator<<(std::ostream& output, const Speed& speed);
-std::istream& operator>>(std::istream& input, Speed& speed);
-
-struct Sheet {
-    std::string name;
-    std::vector<uint8_t> data;
+struct Blob {
+    std::vector<uint8_t> sheet;
     std::map<std::string,
         std::map<Speed, std::map<Direction, std::vector<Frame>>>> characters;
     std::map<std::string, std::vector<Frame>> textures;

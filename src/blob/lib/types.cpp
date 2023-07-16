@@ -1,6 +1,6 @@
-#include <blob/unpacked.hpp>
+#include <blob/types.hpp>
 
-namespace blob::unpacked {
+namespace blob {
 
 std::ostream& operator<<(std::ostream& output, const Direction& direction)
 {
@@ -57,4 +57,4 @@ std::istream& operator>>(std::istream& input, Speed& speed)
     return input;
 }
 
-} // namespace blob::unpacked
+} // namespace blob 

@@ -1,6 +1,6 @@
 #include <blob/pack.hpp>
 
-#include "format_generated.h"
+#include <blob/format_generated.h>
 
 #include <fi.hpp>
 
@@ -17,108 +17,88 @@ void append(std::vector<T>& lhs, const std::vector<T>& rhs)
     std::copy(rhs.begin(), rhs.end(), std::back_inserter(lhs));
 }
 
+void append(std::vector<char>& lhs, const std::string& rhs)
+{
+    std::copy(rhs.begin(), rhs.end(), std::back_inserter(lhs));
+}
+
 } // namespace
 
-void pack(
-    const std::vector<unpacked::Sheet>& unpackedSheets,
-    const std::filesystem::path& outputPath)
+void pack(const unpacked::Blob& source, const std::filesystem::path& outputPath)
 {
     using namespace unpacked;
 
     auto builder = flatbuffers::FlatBufferBuilder{};
 
-    auto stringData = std::string{};
-    auto sheetData = std::vector<uint8_t>{};
-    auto sheets = std::vector<fb::Sheet>{};
+    auto names = std::vector<char>{};
+    auto nameOffsets = std::vector<uint32_t>{};
     auto frames = std::vector<fb::Frame>{};
-    auto animations = std::vector<fb::Animation>{};
-    auto characters = std::vector<fb::NamedAnimation>{};
-    auto textures = std::vector<fb::NamedAnimation>{};
-    auto objects = std::vector<fb::NamedAnimation>{};
+    auto frameOffsets = std::vector<uint32_t>{};
+    uint32_t characterCount = 0;
+    uint32_t textureCount = 0;
+    uint32_t objectCount = 0;
 
-    for (size_t sheetIndex = 0; sheetIndex < unpackedSheets.size();
-            sheetIndex++) {
-        const auto& unpackedSheet = unpackedSheets.at(sheetIndex);
-        sheets.emplace_back(
-            stringData.size(),
-            stringData.size() + unpackedSheet.name.size(),
-            sheetData.size(),
-            sheetData.size() + unpackedSheet.data.size());
-        stringData += unpackedSheet.name;
-        append(sheetData, unpackedSheet.data);
+    for (const auto& [characterName, characterAnimations] : source.characters) {
+        nameOffsets.push_back(names.size());
+        append(names, characterName);
+        for (auto speed : {Speed::Stand, Speed::Walk, Speed::Run}) {
+            for (auto direction : {
+                    Direction::Up,
+                    Direction::Down,
+                    Direction::Left,
+                    Direction::Right}) {
+                if (!characterAnimations.contains(speed) ||
+                        !characterAnimations.at(speed).contains(direction)) {
+                    auto error = std::ostringstream{};
+                    error << "character '" << characterName <<
+                        "' does not have animation for '" <<
+                        speed << " " << direction << "'";
+                    throw std::runtime_error{error.str()};
+                }
 
-        for (const auto& [characterName, characterAnimations] :
-                unpackedSheet.characters) {
-            characters.emplace_back(
-                stringData.size(),
-                stringData.size() + characterName.size(),
-                animations.size());
-            stringData += characterName;
-            for (auto speed : {Speed::Stand, Speed::Walk, Speed::Run}) {
-                for (auto direction : {
-                        Direction::Up,
-                        Direction::Down,
-                        Direction::Left,
-                        Direction::Right}) {
-                    const auto& animation =
-                        characterAnimations.at(speed).at(direction);
-                    animations.emplace_back(
-                        sheetIndex,
-                        frames.size(),
-                        frames.size() + animation.size());
-                    for (const auto& frame : animation) {
-                        frames.emplace_back(
-                            frame.x, frame.y, frame.w, frame.h, frame.ms);
-                    }
+                const auto& sourceFrames =
+                    characterAnimations.at(speed).at(direction);
+                frameOffsets.push_back(frames.size());
+                for (const auto& f : sourceFrames) {
+                    frames.emplace_back(f.x, f.y, f.w, f.h, f.ms);
                 }
             }
         }
+    }
+    characterCount = nameOffsets.size();
 
-        for (const auto& [textureName, textureAnimation] :
-                unpackedSheet.textures) {
-            textures.emplace_back(
-                stringData.size(),
-                stringData.size() + textureName.size(),
-                animations.size());
-            stringData += textureName;
-            animations.emplace_back(
-                sheetIndex,
-                frames.size(),
-                frames.size() + textureAnimation.size());
-            for (const auto& frame : textureAnimation) {
-                frames.emplace_back(
-                    frame.x, frame.y, frame.w, frame.h, frame.ms);
-            }
-        }
+    for (const auto& [textureName, textureAnimation] : source.textures) {
+        nameOffsets.push_back(names.size());
+        append(names, textureName);
 
-        for (const auto& [objectName, objectAnimation] :
-                unpackedSheet.objects) {
-            objects.emplace_back(
-                stringData.size(),
-                stringData.size() + objectName.size(),
-                animations.size());
-            stringData += objectName;
-            animations.emplace_back(
-                sheetIndex,
-                frames.size(),
-                frames.size() + objectAnimation.size());
-            for (const auto& frame : objectAnimation) {
-                frames.emplace_back(
-                    frame.x, frame.y, frame.w, frame.h, frame.ms);
-            }
+        frameOffsets.push_back(frames.size());
+        for (const auto& f : textureAnimation) {
+            frames.emplace_back(f.x, f.y, f.w, f.h, f.ms);
         }
     }
+    textureCount = nameOffsets.size() - characterCount;
+
+    for (const auto& [objectName, objectAnimation] : source.objects) {
+        nameOffsets.push_back(names.size());
+        append(names, objectName);
+
+        frameOffsets.push_back(frames.size());
+        for (const auto& f : objectAnimation) {
+            frames.emplace_back(f.x, f.y, f.w, f.h, f.ms);
+        }
+    }
+    objectCount = nameOffsets.size() - textureCount - characterCount;
 
     auto fbBlob = fb::CreateBlob(
         builder,
-        builder.CreateString(stringData),
-        builder.CreateVector(sheetData),
-        builder.CreateVectorOfStructs(sheets),
+        builder.CreateVector(source.sheet),
+        builder.CreateString(names.data(), names.size()),
+        builder.CreateVector(nameOffsets),
         builder.CreateVectorOfStructs(frames),
-        builder.CreateVectorOfStructs(animations),
-        builder.CreateVectorOfStructs(characters),
-        builder.CreateVectorOfStructs(textures),
-        builder.CreateVectorOfStructs(objects));
+        builder.CreateVector(frameOffsets),
+        characterCount,
+        textureCount,
+        objectCount);
 
     builder.Finish(fbBlob);
 

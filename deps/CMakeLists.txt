@@ -5,9 +5,12 @@ set(ENABLE_WEBSOCKET OFF)
 set(ENABLE_UI OFF)
 set(ENABLE_CCACHE OFF)
 set(ENABLE_WEBP OFF)
-add_subdirectory(aseprite)
+
+set(SDL2IMAGE_INSTALL OFF)
 
 add_subdirectory(Catch2)
 add_subdirectory(SDL)
+add_subdirectory(SDL_image)
+add_subdirectory(aseprite)
 add_subdirectory(flatbuffers)
 add_subdirectory(json)

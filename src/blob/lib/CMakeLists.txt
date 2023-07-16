@@ -2,22 +2,24 @@ add_custom_command(
     COMMENT "blob: generating format_generated.h"
     COMMAND
         $<TARGET_FILE:flatc>
-        -o include
+        -o include/blob
         --cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/format.fbs
     DEPENDS format.fbs
-    OUTPUT include/format_generated.h
+    OUTPUT include/blob/format_generated.h
 )
 
 add_library(blob-lib
+    blob.cpp
+    header.cpp
     pack.cpp
-    unpacked.cpp
+    types.cpp
 
     format.fbs
-    ${CMAKE_CURRENT_BINARY_DIR}/include/format_generated.h
+    ${CMAKE_CURRENT_BINARY_DIR}/include/blob/format_generated.h
 )
-target_include_directories(blob-lib
-    PUBLIC include
-    PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include
+target_include_directories(blob-lib PUBLIC
+    include
+    ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 target_link_libraries(blob-lib PRIVATE fi)

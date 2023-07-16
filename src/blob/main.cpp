@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <istream>
 #include <ostream>
 #include <ranges>
@@ -40,7 +41,8 @@ auto split(std::string_view string, std::string_view separator)
 struct Paths {
     fs::path aseprite;
     fs::path input;
-    fs::path output;
+    fs::path outputData;
+    fs::path outputHeader;
 };
 
 void pack(const Paths& paths)
@@ -55,9 +57,9 @@ void pack(const Paths& paths)
         " --batch" <<
         " --data " << metaPath <<
         " --format json-array" <<
-        " --sheet '" << sheetPath <<
+        " --sheet " << sheetPath <<
         " --sheet-type packed" <<
-        " --filename-format '{path}:{title}:{frame}'";
+        " --filename-format '{path}:{title}:{tag}:{frame}'";
 
     for (const auto& entry : fs::recursive_directory_iterator{paths.input}) {
         if (entry.is_regular_file()) {
@@ -65,13 +67,13 @@ void pack(const Paths& paths)
         }
     }
 
+    std::cout << "executing command: " << command.str() << "\n";
     std::system(command.str().c_str());
 
     using namespace blob::unpacked;
 
-    auto sheet = Sheet{};
-    sheet.name = "base";
-    sheet.data = fi::read<uint8_t>(sheetPath);
+    auto blob = blob::unpacked::Blob{};
+    blob.sheet = fi::read<uint8_t>(sheetPath);
 
     auto metaFile = std::ifstream{metaPath};
     auto meta = nlohmann::json::parse(metaFile);
@@ -82,27 +84,30 @@ void pack(const Paths& paths)
         auto category = fs::canonical(fs::path{path}).filename().string();
 
         auto frameObject = Frame{
-            .x = frame["x"].get<uint32_t>(),
-            .y = frame["y"].get<uint32_t>(),
-            .w = frame["w"].get<uint32_t>(),
-            .h = frame["h"].get<uint32_t>(),
+            .x = frame["frame"]["x"].get<uint32_t>(),
+            .y = frame["frame"]["y"].get<uint32_t>(),
+            .w = frame["frame"]["w"].get<uint32_t>(),
+            .h = frame["frame"]["h"].get<uint32_t>(),
             .ms = frame["duration"].get<uint32_t>(),
         };
 
         if (category == "characters") {
             auto tagStream = std::istringstream{std::string{tag}};
-            auto speed = Speed::Stand;
-            auto direction = Direction::Up;
+            auto speed = blob::Speed::Stand;
+            auto direction = blob::Direction::Up;
             tagStream >> speed >> direction;
-            sheet.characters[nameString][speed][direction].push_back(frameObject);
+            blob.characters[nameString][speed][direction].push_back(frameObject);
         } else if (category == "textures") {
-            sheet.textures[nameString].push_back(frameObject);
+            blob.textures[nameString].push_back(frameObject);
         } else if (category == "objects") {
-            sheet.objects[nameString].push_back(frameObject);
+            blob.objects[nameString].push_back(frameObject);
         } else {
             throw std::runtime_error{"unknown category: " + category};
         }
     }
+
+    blob::pack(blob, paths.outputData);
+    blob::generateHeader(blob::Blob{paths.outputData}, paths.outputHeader);
 }
 
 enum class Action {
@@ -150,11 +155,16 @@ int main(int argc, char* argv[])
         .markRequired()
         .metavar("PATH")
         .help("path to input file or directory");
-    auto output = arg::option<fs::path>()
-        .keys("-o", "--output")
+    auto outputData = arg::option<fs::path>()
+        .keys("--output-data")
         .markRequired()
         .metavar("PATH")
         .help("path to output file or directory");
+    auto outputHeader = arg::option<fs::path>()
+        .keys("--output-header")
+        .markRequired()
+        .metavar("PATH")
+        .help("path to output header");
     auto action = arg::option<Action>()
         .keys("--action")
         .markRequired()
@@ -168,7 +178,8 @@ int main(int argc, char* argv[])
             pack({
                 .aseprite = asepritePath,
                 .input = input,
-                .output = output,
+                .outputData = outputData,
+                .outputHeader = outputHeader,
             });
             break;
         case Action::Unpack:

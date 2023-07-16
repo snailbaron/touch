@@ -7,7 +7,6 @@
 namespace blob {
 
 void pack(
-    const std::vector<unpacked::Sheet>& unpackedSheets,
-    const std::filesystem::path& outputPath);
+    const unpacked::Blob& source, const std::filesystem::path& outputPath);
 
 } // namespace blob

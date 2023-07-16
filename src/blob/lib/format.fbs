@@ -1,12 +1,5 @@
 namespace blob.fb;
 
-struct Sheet {
-  name_begin:uint32;
-  name_end:uint32;
-  data_begin:uint8;
-  data_end:uint8;
-}
-
 struct Frame {
   x:uint32;
   y:uint32;
@@ -15,27 +8,18 @@ struct Frame {
   ms:uint32;
 }
 
-struct Animation {
-  sheet:uint32;
-  frames_begin:uint32;
-  frames_end:uint32;
-}
-
-struct NamedAnimation {
-  name_begin:uint32;
-  name_end:uint32;
-  animation:uint32;
-}
-
 table Blob {
-  string_data:string;
-  sheet_data:[uint8];
-  sheets:[Sheet];
+  sheet:[uint8];
+
+  names:string;
+  name_offsets:[uint32];
+
   frames:[Frame];
-  animations:[Animation];
-  characters:[NamedAnimation];
-  textures:[NamedAnimation];
-  objects:[NamedAnimation];
+  frame_offsets:[uint32];
+
+  character_count:uint32;
+  texture_count:uint32;
+  object_count:uint32;
 }
 
 root_type Blob;

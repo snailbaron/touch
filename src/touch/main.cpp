@@ -1,3 +1,4 @@
+#include <fi.hpp>
 #include <gfx.hpp>
 #include <tempo.hpp>
 #include <ve.hpp>
@@ -15,14 +16,7 @@ template <class T> struct XYModel {
     T x;
     T y;
 };
-
 using Vector = ve::Vector<XYModel, float>;
-
-enum class Speed {
-    Stand,
-    Walk,
-    Run,
-};
 
 struct Character {
     Vector position;
@@ -49,21 +43,17 @@ Vector controlDirection(const KeyboardControl& kb)
 
 int main()
 {
+    gfx::init();
+
     auto keyboardControl = KeyboardControl{};
     auto character = Character{};
 
-    sdl::init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
+    auto view = gfx::View{};
 
-    auto window = sdl::Window{
-        "Asset Preview",
-        SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED,
-        1000,
-        800,
-        0};
-
-    auto renderer = sdl::Renderer{
-        window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC};
+    auto heroSprite =
+        view.scene().add(r::Character::Hero, gfx::Position{3.f, 1.f});
+    [[maybe_unused]] auto treeSprite =
+        view.scene().add(r::Object::Tree, gfx::Position{-1.f, -1.f});
 
     auto timer = tempo::FrameTimer{60};
     bool done = false;
@@ -135,29 +125,40 @@ int main()
                 }
 
                 character.position += character.velocity * timer.delta();
+
+                auto& sprite = view.scene().character(heroSprite);
+                sprite.position = {character.position.x, character.position.y};
+                if (length(character.velocity) > 10.f) {
+                    sprite.speed = gfx::Speed::Run;
+                } else if (length(character.velocity) > 1.f) {
+                    sprite.speed = gfx::Speed::Walk;
+                } else {
+                    sprite.speed = gfx::Speed::Stand;
+                }
+
+                if (length(character.velocity) > 0) {
+                    if (std::abs(character.velocity.x) >
+                            std::abs(character.velocity.y)) {
+                        if (character.velocity.x > 0) {
+                            sprite.direction = gfx::Direction::Right;
+                        } else {
+                            sprite.direction = gfx::Direction::Left;
+                        }
+                    } else {
+                        if (character.velocity.y > 0) {
+                            sprite.direction = gfx::Direction::Up;
+                        } else {
+                            sprite.direction = gfx::Direction::Down;
+                        }
+                    }
+                }
             }
 
-            renderer.setDrawColor(50, 50, 50, 255);
-            renderer.clear();
-
-            auto screenPosition = Vector{
-                500.f + character.position.x * 32.f,
-                400.f - character.position.y * 32.f,
-            };
-
-            renderer.setDrawColor(200, 200, 200, 255);
-            renderer.fillRectF({
-                .x = screenPosition.x - 10.f,
-                .y = screenPosition.y - 10.f,
-                .w = 20.f,
-                .h = 20.f,
-            });
-
-            renderer.present();
+            view.render();
         }
 
         timer.relax();
     }
 
-    sdl::quit();
+    gfx::quit();
 }
