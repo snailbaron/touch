@@ -6,6 +6,8 @@
 #include <tempo.hpp>
 #include <ve.hpp>
 
+#include <deque>
+#include <optional>
 #include <vector>
 
 namespace gfx {
@@ -72,6 +74,9 @@ public:
     size_t add(r::Object objectId, const Position& position);
     size_t add(r::Character characterId, const Position& position);
 
+    void removeObject(size_t objectId);
+
+    Camera& camera();
     Sprite& sprite(size_t index);
     CharacterSprite& character(size_t index);
 
@@ -83,8 +88,10 @@ public:
 private:
     const Resources& _resources;
     Camera _camera;
-    std::vector<Sprite> _sprites;
+    std::vector<std::optional<Sprite>> _sprites;
     std::vector<CharacterSprite> _characters;
+    std::deque<size_t> _freeSprites;
+    std::deque<size_t> _freeCharacters;
 };
 
 } // namespace gfx

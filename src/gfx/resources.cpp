@@ -8,13 +8,13 @@
 namespace gfx {
 
 Animation::Animation(const sdl::Texture& texture, std::vector<SDL_Rect> frames)
-    : _texture(texture)
+    : _texture(&texture)
     , _frames(std::move(frames))
 { }
 
 const sdl::Texture& Animation::texture() const
 {
-    return _texture;
+    return *_texture;
 }
 
 size_t Animation::frameCount() const

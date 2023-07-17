@@ -59,7 +59,8 @@ void pack(const Paths& paths)
         " --format json-array" <<
         " --sheet " << sheetPath <<
         " --sheet-type packed" <<
-        " --filename-format '{path}:{title}:{tag}:{frame}'";
+        " --filename-format '{path}:{title}:{tag}:{frame}'" <<
+        " --inner-padding 1";
 
     for (const auto& entry : fs::recursive_directory_iterator{paths.input}) {
         if (entry.is_regular_file()) {

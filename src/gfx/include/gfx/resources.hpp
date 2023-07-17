@@ -21,7 +21,7 @@ public:
 private:
     Animation(const sdl::Texture& texture, std::vector<SDL_Rect> frames);
 
-    const sdl::Texture& _texture;
+    const sdl::Texture* _texture;
     std::vector<SDL_Rect> _frames;
 
     friend class Resources;

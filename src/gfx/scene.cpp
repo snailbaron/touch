@@ -73,6 +73,13 @@ Scene::Scene(const Resources& resources)
 
 size_t Scene::add(r::Object objectId, const Position& position)
 {
+    if (!_freeSprites.empty()) {
+        size_t id = _freeSprites.front();
+        _freeSprites.pop_front();
+        _sprites.at(id) = Sprite{_resources[objectId], position};
+        return id;
+    }
+
     _sprites.push_back(Sprite{_resources[objectId], position});
     return _sprites.size() - 1;
 }
@@ -83,14 +90,24 @@ size_t Scene::add(r::Character characterId, const Position& position)
     return _characters.size() - 1;
 }
 
+void Scene::removeObject(size_t objectId)
+{
+    _freeSprites.push_back(objectId);
+    _sprites.at(objectId).reset();
+}
+
+Camera& Scene::camera()
+{
+    return _camera;
+}
+
 Sprite& Scene::sprite(size_t index)
 {
-    return _sprites.at(index);
+    return _sprites.at(index).value();
 }
 
 CharacterSprite& Scene::character(size_t index)
 {
-    std::cout << "returning character " << index << " with position " << _characters.at(index).position << "\n";
     return _characters.at(index);
 }
 
@@ -102,7 +119,9 @@ void Scene::setScreenSize(int w, int h)
 void Scene::update(double delta)
 {
     for (auto& sprite : _sprites) {
-        sprite.update(delta);
+        if (sprite) {
+            sprite->update(delta);
+        }
     }
     for (auto& character : _characters) {
         character.update(delta);
@@ -112,12 +131,13 @@ void Scene::update(double delta)
 void Scene::render(sdl::Renderer& renderer)
 {
     for (auto& sprite : _sprites) {
-        auto screenPosition = _camera.toScreen(sprite.position);
-        sprite.render(renderer, screenPosition, _camera.zoom);
+        if (sprite) {
+            auto screenPosition = _camera.toScreen(sprite->position);
+            sprite->render(renderer, screenPosition, _camera.zoom);
+        }
     }
 
     for (auto& character : _characters) {
-        std::cout << "rendering character at position " << character.position << "\n";
         auto screenPosition = _camera.toScreen(character.position);
         character.render(renderer, screenPosition, _camera.zoom);
     }

@@ -21,17 +21,41 @@ View::View(World& world)
     _scene.setScreenSize(1000, 800);
 
     subscribe<AppearEvent>(events, [this] (const AppearEvent& e) {
-        if (e.type == EntityType::Hero) {
-            _characterEntityMap[e.entity] = _scene.add(
-                r::Character::Hero, {e.position.x, e.position.y});
-        } else if (e.type == EntityType::Tree) {
-            _spriteEntityMap[e.entity] = _scene.add(
-                r::Object::Tree, {e.position.x, e.position.y});
+        switch (e.type) {
+            case EntityType::Hero:
+                _characterEntityMap[e.entity] = _scene.add(
+                    r::Character::Hero, {e.position.x, e.position.y});
+                break;
+            case EntityType::Tree:
+                _spriteEntityMap[e.entity] = _scene.add(
+                    r::Object::Tree, {e.position.x, e.position.y});
+                break;
+            case EntityType::Ball:
+                _spriteEntityMap[e.entity] = _scene.add(
+                    r::Object::Ball, {e.position.x, e.position.y});
+                break;
+            case EntityType::Enemy:
+                _spriteEntityMap[e.entity] = _scene.add(
+                    r::Object::Enemy, {e.position.x, e.position.y});
+                break;
+            case EntityType::Camera:
+                _cameraEntity = e.entity;
+                _scene.camera().position = {e.position.x, e.position.y};
+                break;
+        }
+    });
+
+    subscribe<DisappearEvent>(events, [this] (const DisappearEvent& e) {
+        if (auto it = _spriteEntityMap.find(e.entity);
+                it != _spriteEntityMap.end()) {
+            _scene.removeObject(it->second);
         }
     });
 
     subscribe<MoveEvent>(events, [this] (const MoveEvent& e) {
-        if (auto it = _spriteEntityMap.find(e.entity);
+        if (e.entity == _cameraEntity) {
+            _scene.camera().position = {e.position.x, e.position.y};
+        } else if (auto it = _spriteEntityMap.find(e.entity);
                 it != _spriteEntityMap.end()) {
             auto& sprite = _scene.sprite(it->second);
             sprite.position = {e.position.x, e.position.y};
@@ -64,6 +88,10 @@ View::View(World& world)
                 }
             }
         }
+    });
+
+    subscribe<GameOverEvent>(events, [this] (const GameOverEvent&) {
+        _done = true;
     });
 }
 
@@ -100,11 +128,19 @@ void View::render()
 
 void View::processEvent(const SDL_Event& event)
 {
-    if (event.type == SDL_QUIT || (
-            event.type == SDL_KEYDOWN &&
-            event.key.keysym.sym == SDLK_F4 &&
+    if (event.type == SDL_QUIT) {
+        _done = true;
+        return;
+    }
+
+    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_F4 &&
             ((event.key.keysym.mod & SDLK_LALT) ||
-                (event.key.keysym.mod & SDLK_RALT)))) {
+                (event.key.keysym.mod & SDLK_RALT))) {
+        _done = true;
+        return;
+    }
+
+    if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
         _done = true;
         return;
     }

@@ -16,6 +16,7 @@ using Vector = ve::Vector<XYModel, float>;
 struct LocationComponent {
     Position position;
     Vector velocity;
+    float radius = 0.5f;
 };
 
 struct ControlComponent {
@@ -25,9 +26,23 @@ struct ControlComponent {
     float maxSpeed = 8.f;
 };
 
+struct EnemyComponent {
+    double timeBetweenShots = 1.0;
+    double timeSinceShot = 0.0;
+    double bulletSpeed = 4.0;
+};
+
+struct ProjectileComponent {
+    double timeToDisappear = 5.0;
+    double timeSinceFired = 0.0;
+};
+
 enum class EntityType {
     Hero,
     Tree,
+    Ball,
+    Enemy,
+    Camera,
 };
 
 struct AppearEvent {
@@ -36,11 +51,17 @@ struct AppearEvent {
     EntityType type {};
 };
 
+struct DisappearEvent {
+    thing::Entity entity = thing::Entity{0};
+};
+
 struct MoveEvent {
     thing::Entity entity = thing::Entity{0};
     Position position;
     Vector velocity;
 };
+
+struct GameOverEvent {};
 
 class World {
 public:
@@ -53,4 +74,7 @@ public:
 private:
     thing::EntityManager _em;
     ControlComponent* _heroControl = nullptr;
+
+    thing::Entity _heroEntity;
+    thing::Entity _cameraEntity;
 };

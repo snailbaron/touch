@@ -37,4 +37,5 @@ private:
     KeyboardControl _keyboardControl;
     std::map<thing::Entity, size_t> _spriteEntityMap;
     std::map<thing::Entity, size_t> _characterEntityMap;
+    thing::Entity _cameraEntity;
 };

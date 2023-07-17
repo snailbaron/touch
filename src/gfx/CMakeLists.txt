@@ -7,6 +7,9 @@ add_custom_command(
         --input ${PROJECT_SOURCE_DIR}/assets
         --output-data ${CMAKE_BINARY_DIR}/data.blob
         --output-header ${CMAKE_CURRENT_BINARY_DIR}/include/gfx/resource_ids.hpp
+    DEPENDS
+        ${PROJECT_SOURCE_DIR}/assets/timestamp
+        blob
     OUTPUT
         ${CMAKE_CURRENT_BINARY_DIR}/include/gfx/resource_ids.hpp
         ${CMAKE_BINARY_DIR}/data.blob
