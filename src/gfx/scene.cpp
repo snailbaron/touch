@@ -90,6 +90,7 @@ Sprite& Scene::sprite(size_t index)
 
 CharacterSprite& Scene::character(size_t index)
 {
+    std::cout << "returning character " << index << " with position " << _characters.at(index).position << "\n";
     return _characters.at(index);
 }
 
@@ -116,6 +117,7 @@ void Scene::render(sdl::Renderer& renderer)
     }
 
     for (auto& character : _characters) {
+        std::cout << "rendering character at position " << character.position << "\n";
         auto screenPosition = _camera.toScreen(character.position);
         character.render(renderer, screenPosition, _camera.zoom);
     }

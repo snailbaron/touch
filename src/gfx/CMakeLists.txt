@@ -13,10 +13,10 @@ add_custom_command(
 )
 
 add_library(gfx
+    init.cpp
     resources.cpp
     scene.cpp
     sdl-wrapper.cpp
-    view.cpp
 
     ${CMAKE_CURRENT_BINARY_DIR}/include/gfx/resource_ids.hpp
 )

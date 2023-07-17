@@ -34,3 +34,6 @@
 [submodule "deps/SDL_image"]
 	path = deps/SDL_image
 	url = https://github.com/libsdl-org/SDL_image.git
+[submodule "src/as"]
+	path = src/as
+	url = https://github.com/snailbaron/as.git
