@@ -26,7 +26,9 @@ View::View()
         _window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC)
     , _resources(_renderer)
     , _scene(_resources)
-{ }
+{
+    _scene.setScreenSize(1000, 800);
+}
 
 Scene& View::scene()
 {

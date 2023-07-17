@@ -154,6 +154,7 @@ int main()
                 }
             }
 
+            view.update(timer.delta() * framesPassed);
             view.render();
         }
 

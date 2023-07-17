@@ -4,6 +4,7 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <iostream>
 #include <string>
 
 namespace fs = std::filesystem;
@@ -26,6 +27,9 @@ std::string toEnumName(std::string_view source)
 void generateHeader(
     const Blob& blob, const fs::path& outputHeaderPath)
 {
+    std::cout << "sheet size: " << blob.sheet().size() << "\n";
+
+    std::cout << "generating header from data: " << outputHeaderPath << "\n";
     auto output = std::ofstream{outputHeaderPath};
     output.exceptions(std::ios::badbit | std::ios::failbit);
 

@@ -5,6 +5,7 @@
 #include <fi.hpp>
 
 #include <algorithm>
+#include <iostream>
 #include <sstream>
 
 namespace blob {
@@ -89,6 +90,10 @@ void pack(const unpacked::Blob& source, const std::filesystem::path& outputPath)
     }
     objectCount = nameOffsets.size() - textureCount - characterCount;
 
+    nameOffsets.push_back(names.size());
+    frameOffsets.push_back(frames.size());
+
+    std::cout << "source sheet is " << source.sheet.size() << " bytes\n";
     auto fbBlob = fb::CreateBlob(
         builder,
         builder.CreateVector(source.sheet),

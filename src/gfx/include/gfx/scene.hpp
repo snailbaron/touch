@@ -75,6 +75,8 @@ public:
     Sprite& sprite(size_t index);
     CharacterSprite& character(size_t index);
 
+    void setScreenSize(int w, int h);
+
     void update(double delta);
     void render(sdl::Renderer& renderer);
 

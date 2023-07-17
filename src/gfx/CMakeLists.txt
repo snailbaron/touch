@@ -3,11 +3,13 @@ add_custom_command(
     COMMAND
         $<TARGET_FILE:blob>
         --aseprite $<TARGET_FILE:aseprite>
-        --input ${PROJECT_SOURCE_DIR}/assets
-        --output-data ${PROJECT_BINARY_DIR}/data.blob
-        --output-header include/gfx/resource_ids.hpp
         --action pack
-    OUTPUT include/gfx/resource_ids.hpp
+        --input ${PROJECT_SOURCE_DIR}/assets
+        --output-data ${CMAKE_BINARY_DIR}/data.blob
+        --output-header ${CMAKE_CURRENT_BINARY_DIR}/include/gfx/resource_ids.hpp
+    OUTPUT
+        ${CMAKE_CURRENT_BINARY_DIR}/include/gfx/resource_ids.hpp
+        ${CMAKE_BINARY_DIR}/data.blob
 )
 
 add_library(gfx

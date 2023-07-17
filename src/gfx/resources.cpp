@@ -2,28 +2,10 @@
 
 #include <fi.hpp>
 
+#include <iostream>
 #include <span>
 
 namespace gfx {
-
-namespace {
-
-std::vector<SDL_Rect> convertFrames(
-    std::span<const blob::fb::Frame* const> source)
-{
-    auto frames = std::vector<SDL_Rect>{};
-    for (auto* f : source) {
-        frames.push_back({
-            .x = (int)f->x(),
-            .y = (int)f->y(),
-            .w = (int)f->w(),
-            .h = (int)f->h()
-        });
-    }
-    return frames;
-}
-
-} // namespace
 
 Animation::Animation(const sdl::Texture& texture, std::vector<SDL_Rect> frames)
     : _texture(texture)
@@ -45,6 +27,10 @@ const SDL_Rect& Animation::frame(size_t index) const
     return _frames.at(index);
 }
 
+CharacterAnimations::CharacterAnimations(std::vector<Animation> animations)
+    : _animations(std::move(animations))
+{ }
+
 Animation CharacterAnimations::animation(Speed speed, Direction direction)
 {
     return _animations.at((int)speed * 4 + (int)direction);
@@ -53,11 +39,10 @@ Animation CharacterAnimations::animation(Speed speed, Direction direction)
 Resources::Resources(const sdl::Renderer& renderer)
     : _blob(fi::BUILD_ROOT / "data.blob")
     , _texture(renderer.loadTexture(_blob.sheet()))
-{ }
-
-CharacterAnimations::CharacterAnimations(std::vector<Animation> animations)
-    : _animations(std::move(animations))
-{ }
+{
+    std::cout << "resource data loaded from " <<
+        (fi::BUILD_ROOT / "data.blob") << "\n";
+}
 
 CharacterAnimations Resources::operator[](r::Character characterId) const
 {
@@ -72,9 +57,18 @@ CharacterAnimations Resources::operator[](r::Character characterId) const
                 Direction::Down,
                 Direction::Left,
                 Direction::Right}) {
-            auto sourceFrames = data.animation(speed, direction);
+            auto convertedFrames = std::vector<SDL_Rect>{};
+            for (size_t i = 0; i < data.frameCount(speed, direction); i++) {
+                const auto& f = data.frame(speed, direction, i);
+                convertedFrames.push_back({
+                    .x = (int)f.x(),
+                    .y = (int)f.y(),
+                    .w = (int)f.w(),
+                    .h = (int)f.h()
+                });
+            }
             animations.push_back(
-                Animation{_texture, convertFrames(sourceFrames)});
+                Animation{_texture, std::move(convertedFrames)});
         }
     }
 
@@ -84,13 +78,27 @@ CharacterAnimations Resources::operator[](r::Character characterId) const
 Animation Resources::operator[](r::Texture textureId) const
 {
     auto data = _blob.texture((uint32_t)textureId);
-    return Animation{_texture, convertFrames(data.animation())};
+    auto convertedFrames = std::vector<SDL_Rect>{};
+    for (size_t i = 0; i < data.frameCount(); i++) {
+        const auto& f = data.frame(i);
+        convertedFrames.push_back({
+            .x = (int)f.x(), .y = (int)f.y(), .w = (int)f.w(), .h = (int)f.h()
+        });
+    }
+    return Animation{_texture, std::move(convertedFrames)};
 }
 
 Animation Resources::operator[](r::Object objectId) const
 {
     auto data = _blob.object((uint32_t)objectId);
-    return Animation{_texture, convertFrames(data.animation())};
+    auto convertedFrames = std::vector<SDL_Rect>{};
+    for (size_t i = 0; i < data.frameCount(); i++) {
+        const auto& f = data.frame(i);
+        convertedFrames.push_back({
+            .x = (int)f.x(), .y = (int)f.y(), .w = (int)f.w(), .h = (int)f.h()
+        });
+    }
+    return Animation{_texture, std::move(convertedFrames)};
 }
 
 } // namespace gfx

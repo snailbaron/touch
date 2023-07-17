@@ -1,5 +1,6 @@
 #include <blob/blob.hpp>
 
+#include <iostream>
 #include <tuple>
 
 namespace blob {
@@ -25,14 +26,19 @@ std::string_view Character::name() const
     return _fb->names()->string_view().substr(begin, end - begin);
 }
 
-std::span<const fb::Frame* const> Character::animation(
-    Speed speed, Direction direction)
+uint32_t Character::frameCount(Speed speed, Direction direction) const
 {
     uint32_t offset = (int)speed * 4 + (int)direction;
-    auto [begin, end] = range(
-        _fb->frame_offsets(),
-        _index * 12 + offset);
-    return {_fb->frames()->data() + begin, _fb->frames()->data() + end};
+    auto [begin, end] = range(_fb->frame_offsets(), _index * 12 + offset);
+    return end - begin;
+}
+
+const fb::Frame& Character::frame(
+    Speed speed, Direction direction, uint32_t frameIndex) const
+{
+    uint32_t offset = (int)speed * 4 + (int)direction;
+    uint32_t startFrame = _fb->frame_offsets()->Get(_index * 12 + offset);
+    return *_fb->frames()->Get(startFrame + frameIndex);
 }
 
 NamedAnimation::NamedAnimation(const fb::Blob* fb, uint32_t index)
@@ -46,11 +52,18 @@ std::string_view NamedAnimation::name() const
     return _fb->names()->string_view().substr(begin, end - begin);
 }
 
-std::span<const fb::Frame* const> NamedAnimation::animation() const
+uint32_t NamedAnimation::frameCount() const
 {
     auto animationIndex = _index + 11 * _fb->character_count();
     auto [begin, end] = range(_fb->frame_offsets(), animationIndex);
-    return {_fb->frames()->data() + begin, _fb->frames()->data() + end};
+    return end - begin;
+}
+
+const fb::Frame& NamedAnimation::frame(uint32_t frameIndex) const
+{
+    auto animationIndex = _index + 11 * _fb->character_count();
+    auto startFrame = _fb->frame_offsets()->Get(animationIndex);
+    return *_fb->frames()->Get(startFrame + frameIndex);
 }
 
 Blob::Blob(const std::filesystem::path& blobFile)
@@ -60,6 +73,7 @@ Blob::Blob(const std::filesystem::path& blobFile)
 
 std::span<const std::byte> Blob::sheet() const
 {
+    std::cout << "sheet size: " << _fb->sheet()->size() << "\n";
     return {
         reinterpret_cast<const std::byte*>(_fb->sheet()->data()),
         _fb->sheet()->size()

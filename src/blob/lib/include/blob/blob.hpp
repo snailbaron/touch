@@ -17,8 +17,10 @@ namespace blob {
 class Character {
 public:
     std::string_view name() const;
-    std::span<const fb::Frame* const> animation(
-        Speed speed, Direction direction);
+
+    uint32_t frameCount(Speed speed, Direction direction) const;
+    const fb::Frame& frame(
+        Speed speed, Direction direction, uint32_t frameIndex) const;
 
 private:
     Character(const fb::Blob* fb, uint32_t index);
@@ -32,7 +34,9 @@ private:
 class NamedAnimation {
 public:
     std::string_view name() const;
-    std::span<const fb::Frame* const> animation() const;
+
+    uint32_t frameCount() const;
+    const fb::Frame& frame(uint32_t frameIndex) const;
 
 private:
     NamedAnimation(const fb::Blob* fb, uint32_t index);

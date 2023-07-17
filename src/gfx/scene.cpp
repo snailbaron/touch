@@ -1,5 +1,7 @@
 #include <gfx/scene.hpp>
 
+#include <iostream>
+
 namespace gfx {
 
 Position Camera::toScreen(const Position& worldPosition) const
@@ -72,13 +74,13 @@ Scene::Scene(const Resources& resources)
 size_t Scene::add(r::Object objectId, const Position& position)
 {
     _sprites.push_back(Sprite{_resources[objectId], position});
-    return _sprites.size();
+    return _sprites.size() - 1;
 }
 
 size_t Scene::add(r::Character characterId, const Position& position)
 {
     _characters.push_back(CharacterSprite{_resources[characterId], position});
-    return _characters.size();
+    return _characters.size() - 1;
 }
 
 Sprite& Scene::sprite(size_t index)
@@ -91,10 +93,18 @@ CharacterSprite& Scene::character(size_t index)
     return _characters.at(index);
 }
 
+void Scene::setScreenSize(int w, int h)
+{
+    _camera.screenSize = {(float)w, (float)h};
+}
+
 void Scene::update(double delta)
 {
     for (auto& sprite : _sprites) {
         sprite.update(delta);
+    }
+    for (auto& character : _characters) {
+        character.update(delta);
     }
 }
 

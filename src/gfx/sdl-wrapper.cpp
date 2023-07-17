@@ -1,5 +1,6 @@
 #include <gfx/sdl-wrapper.hpp>
 
+#include <iostream>
 #include <stdexcept>
 
 namespace sdl {
@@ -92,6 +93,7 @@ Texture Renderer::loadTexture(const std::filesystem::path& file) const
 
 Texture Renderer::loadTexture(std::span<const std::byte> data) const
 {
+    std::cout << "loading texture from " << data.size() << " bytes\n";
     auto* io = check(SDL_RWFromConstMem(data.data(), (int)data.size()));
     return Texture{check(IMG_LoadTexture_RW(_ptr.get(), io, 1))};
 }
