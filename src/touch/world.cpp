@@ -22,7 +22,7 @@ World::World()
     {
         _heroEntity = _em.createEntity();
         const auto& heroLocation = _em.add(_heroEntity, LocationComponent{
-            .position = {2, 1},
+            .position = {0, 0},
             .velocity = {0, 0},
         });
         _heroControl = &_em.add(_heroEntity, ControlComponent{});
@@ -49,8 +49,38 @@ World::World()
             .position = {-4, 3},
             .velocity = {0, 0},
         });
-        _em.add(enemy, EnemyComponent{});
+        _em.add(enemy, ProximityTurretComponent{});
         notifyAppear(enemy, EntityType::Enemy, location);
+    }
+
+    {
+        auto t1 = _em.createEntity();
+        const auto& l1 = _em.add(t1, LocationComponent{
+            .position = {-1, 8},
+            .velocity = {0, 0},
+        });
+        notifyAppear(t1, EntityType::Enemy, l1);
+        _em.add(t1, ProximityTurretComponent{
+            .bulletSpeed = 15.0,
+            .ammoCapacity = 5,
+            .timeBetweenShots = 0.1,
+            .reloadTime = 1.0,
+            .proximity = 2.0
+        });
+
+        auto t2 = _em.createEntity();
+        const auto& l2 = _em.add(t2, LocationComponent{
+            .position = {1, 8},
+            .velocity = {0, 0},
+        });
+        notifyAppear(t2, EntityType::Enemy, l2);
+        _em.add(t2, ProximityTurretComponent{
+            .bulletSpeed = 15.0,
+            .ammoCapacity = 5,
+            .timeBetweenShots = 0.1,
+            .reloadTime = 1.0,
+            .proximity = 2.0
+        });
     }
 }
 
@@ -78,46 +108,78 @@ void World::update(double delta)
         }
     }
 
-    for (auto e : _em.entities<EnemyComponent>()) {
-        auto& enemy = _em.component<EnemyComponent>(e);
-        enemy.timeSinceShot += delta;
+    for (auto e : _em.entities<ProximityTurretComponent>()) {
+        auto& enemy = _em.component<ProximityTurretComponent>(e);
 
-        auto targets = _em.entities<ControlComponent>();
-        if (enemy.timeSinceShot >= enemy.timeBetweenShots && !targets.empty()) {
-            enemy.timeSinceShot -= enemy.timeBetweenShots;
+        std::cerr.setf(std::ios::fixed, std::ios::floatfield);
+        std::cerr.precision(6);
 
-            const auto& target = targets.front();
-            const auto& targetLocation =
-                _em.component<LocationComponent>(target);
-            const auto& enemyLocation = _em.component<LocationComponent>(e);
-            auto bullet = _em.createEntity();
-            const auto& bulletLocation = _em.add(bullet, LocationComponent{
-                .position = enemyLocation.position,
-                .velocity =
-                    unit(targetLocation.position - enemyLocation.position) *
-                        enemy.bulletSpeed,
-                .radius = 0.3f});
-            _em.add(bullet, ProjectileComponent{});
-            notifyAppear(bullet, EntityType::Ball, bulletLocation);
+        std::cerr << "reloads:";
+        for (auto r : enemy.reloads) {
+            std::cerr << " " << r;
         }
+        std::cerr << "\n";
+
+        enemy.timeSinceLastShot += delta;
+
+        while (!enemy.reloads.empty() && enemy.reloads.front() <= delta) {
+            enemy.reloads.pop_front();
+            enemy.ammo++;
+        }
+        for (auto& reload : enemy.reloads) {
+            reload -= delta;
+        }
+
+        if (enemy.ammo == 0) {
+            continue;
+        }
+
+        if (enemy.timeSinceLastShot < enemy.timeBetweenShots) {
+            continue;
+        }
+
+        const auto& enemyLocation = _em.component<LocationComponent>(e);
+        if (distance(enemyLocation.position, heroLocation.position) >
+                enemy.proximity) {
+            std::cerr << "too far: " <<
+                distance(enemyLocation.position, heroLocation.position) << "\n";
+            continue;
+        }
+
+        enemy.ammo--;
+        enemy.timeSinceLastShot = 0.0;
+        enemy.reloads.push_back(enemy.reloadTime);
+
+        auto bullet = _em.createEntity();
+        const auto& bulletLocation = _em.add(bullet, LocationComponent{
+            .position = enemyLocation.position,
+            .velocity =
+                unit(heroLocation.position - enemyLocation.position) *
+                    enemy.bulletSpeed,
+            .radius = 0.3f});
+        _em.add(bullet, ProjectileComponent{});
+        notifyAppear(bullet, EntityType::Ball, bulletLocation);
     }
 
+    auto projectilesToKill = std::vector<thing::Entity>{};
     for (auto e : _em.entities<ProjectileComponent>()) {
         auto& projectile = _em.component<ProjectileComponent>(e);
         projectile.timeSinceFired += delta;
         if (projectile.timeSinceFired >= projectile.timeToDisappear) {
-            _em.killEntity(e);
-            events.push(DisappearEvent{.entity = e});
+            projectilesToKill.push_back(e);
             continue;
         }
 
-        const auto& projectileLocation = _em.component<LocationComponent>(e);
-        std::cout << "distance: " << distance(projectileLocation.position, heroLocation.position) << "\n";
-        if (distance(projectileLocation.position, heroLocation.position) <
-                projectileLocation.radius + heroLocation.radius) {
-            std::cout << "sending game over\n";
-            events.push(GameOverEvent{});
-        }
+        //const auto& projectileLocation = _em.component<LocationComponent>(e);
+        //if (distance(projectileLocation.position, heroLocation.position) <
+        //        projectileLocation.radius + heroLocation.radius) {
+        //    events.push(GameOverEvent{});
+        //}
+    }
+
+    for (auto e : projectilesToKill) {
+        _em.killEntity(e);
+        events.push(DisappearEvent{.entity = e});
     }
 
     for (auto e : _em.entities<LocationComponent>()) {

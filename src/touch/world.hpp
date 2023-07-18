@@ -1,8 +1,11 @@
 #pragma once
 
+#include <as.hpp>
 #include <evening.hpp>
 #include <thing.hpp>
 #include <ve.hpp>
+
+#include <deque>
 
 inline evening::Channel events;
 
@@ -26,15 +29,26 @@ struct ControlComponent {
     float maxSpeed = 8.f;
 };
 
-struct EnemyComponent {
-    double timeBetweenShots = 1.0;
-    double timeSinceShot = 0.0;
+struct ProximityTurretComponent {
     double bulletSpeed = 4.0;
+
+    size_t ammoCapacity = 3;
+    double timeBetweenShots = 0.5;
+    double reloadTime = 2.0;
+
+    double proximity = 3.0;
+
+    double timeSinceLastShot = 0.0;
+    size_t ammo = ammoCapacity;
+    std::deque<double> reloads;
 };
 
 struct ProjectileComponent {
     double timeToDisappear = 5.0;
     double timeSinceFired = 0.0;
+};
+
+struct SmartTowerComponent {
 };
 
 enum class EntityType {
@@ -74,6 +88,7 @@ public:
 private:
     thing::EntityManager _em;
     ControlComponent* _heroControl = nullptr;
+    as::coro::Pool _coro;
 
     thing::Entity _heroEntity;
     thing::Entity _cameraEntity;
