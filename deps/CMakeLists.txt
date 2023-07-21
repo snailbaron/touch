@@ -14,3 +14,20 @@ add_subdirectory(SDL_image)
 add_subdirectory(aseprite)
 add_subdirectory(flatbuffers)
 add_subdirectory(json)
+add_subdirectory(yaml-cpp)
+
+include(ExternalProject)
+ExternalProject_Add(
+    lmms-project
+    GIT_REPOSITORY https://github.com/LMMS/lmms.git
+    GIT_TAG 94363be152f526edba4e884264d891f1361cf54b
+    GIT_SHALLOW ON
+    UPDATE_COMMAND ""
+    CMAKE_ARGS
+        -D WANT_QT5=ON
+        -D "CMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/lmms"
+)
+add_executable(lmms IMPORTED GLOBAL)
+set_target_properties(lmms PROPERTIES
+    IMPORTED_LOCATION "${CMAKE_CURRENT_BINARY_DIR}/lmms/bin/lmms"
+)

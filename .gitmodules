@@ -37,3 +37,6 @@
 [submodule "src/as"]
 	path = src/as
 	url = https://github.com/snailbaron/as.git
+[submodule "deps/yaml-cpp"]
+	path = deps/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp.git

@@ -1,98 +1,69 @@
-function(collect_objects output_manifest output_files type)
-    set(source_file_names ${ARGN})
-    list(LENGTH source_file_names source_file_name_count)
-    math(EXPR source_file_name_largest_index "${source_file_name_count} - 1")
-
-    set(${output_manifest} "[]")
-    set(${output_files} "")
-    foreach(i RANGE ${source_file_name_largest_index})
-        list(GET source_file_names ${i} source_file_name)
-
-        set(file_path "${CMAKE_CURRENT_SOURCE_DIR}/${type}/${source_file_name}")
-        if(NOT EXISTS "${file_path}")
-            message(SEND_ERROR
-                "resource file of type '${type}' does not exist: '${file_path}'")
-        endif()
-
-        string(JSON ${output_manifest}
-            SET "${${output_manifest}}" ${i} "\"${file_path}\"")
-
-        string(REGEX REPLACE "\\.[^\\.]*" ".png"
-            processed_file_name "${source_file_name}")
-        list(APPEND ${output_files} "${type}/${processed_file_name}")
-    endforeach()
-
-    return(PROPAGATE ${output_manifest} ${output_files})
-endfunction()
-
-function(resources)
+function(add_pack_spritesheet_target)
     set(options "")
-    set(oneValueArgs "")
-    set(multiValueArgs CHARACTERS TEXTURES OBJECTS)
+    set(oneValueArgs TARGET MANIFEST OUTPUT_SHEET OUTPUT_META)
+    set(multiValueArgs FILES)
     cmake_parse_arguments(
-        R "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+        ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    list(LENGTH R_CHARACTERS character_count)
-    list(LENGTH R_TEXTURE texture_count)
-    list(LENGTH R_OBJECTS object_count)
+    set(manifest_file_path "${CMAKE_CURRENT_BINARY_DIR}/${ARG_MANIFEST}")
+    set(output_sheet_file_path "${CMAKE_CURRENT_BINARY_DIR}/${ARG_OUTPUT_SHEET}")
+    set(output_meta_file_path "${CMAKE_CURRENT_BINARY_DIR}/${ARG_OUTPUT_META}")
 
-    collect_objects(character_json character_files "characters" ${R_CHARACTERS})
-    collect_objects(texture_json texture_files "textures" ${R_TEXTURES})
-    collect_objects(object_json object_files "objects" ${R_OBJECTS})
+    file(WRITE "${manifest_file_path}" "")
 
-    set(input_manifest_path "${CMAKE_CURRENT_BINARY_DIR}/manifest.json")
-    set(manifest "{}")
-    string(JSON manifest SET "${manifest}" "characters" "${character_json}")
-    string(JSON manifest SET "${manifest}" "textures" "${texture_json}")
-    string(JSON manifest SET "${manifest}" "objects" "${object_json}")
-    file(WRITE "${input_manifest_path}" "${manifest}")
+    set(input_file_paths "")
+    while(NOT "${ARG_FILES}" STREQUAL "")
+        list(POP_FRONT ARG_FILES type path)
+        list(APPEND input_file_paths "${path}")
+        file(APPEND "${manifest_file_path}" "- type: ${type}\n  path: \"${path}\"\n")
+    endwhile()
 
-    set(output_files ${character_files} ${texture_files} ${object_files})
-    list(TRANSFORM output_files PREPEND "${CMAKE_CURRENT_BINARY_DIR}/sheets/")
+    add_custom_command(
+        COMMENT "packing spritesheet"
+        COMMAND
+            $<TARGET_FILE:pack-spritesheet>
+            --aseprite "$<TARGET_FILE:aseprite>"
+            --root "${CMAKE_CURRENT_SOURCE_DIR}"
+            --manifest "${manifest_file_path}"
+            --output-sheet "${output_sheet_file_path}"
+            --output-meta "${output_meta_file_path}"
+        DEPENDS
+            pack-spritesheet
+            "${manifest_file_path}"
+            ${input_file_paths}
+        OUTPUT
+            "${output_sheet_file_path}"
+            "${output_meta_file_path}"
+    )
 
-    #add_custom_command(
-    #    COMMENT "running command to pack resources"
-    #    COMMAND
-    #        $<TARGET_FILE:pack>
-    #        --input-manifest "${input_manifest_path}"
-    #        --output-manifest "${output_manifest_path}"
-    #        --output-single-sheet "${CMAKE_CURRENT_BINARY_DIR}/sheet.png"
-    #        --output-multiple-sheets "${CMAKE_CURRENT_BINARY_DIR}/sheets"
-    #    DEPENDS
-    #        pack
-    #        "${input_manifest_path}"
-    #    OUTPUT
-    #        "${output_manifest_file}"
-    #        "${CMAKE_CURRENT_BINARY_DIR}/sheet.png"
-    #        ${output_files}
-    #)
-
-    #add_custom_target(pack-resources
-    #    COMMENT "building target to pack resources"
-    #    DEPENDS
-    #        "${output_manifest_file}"
-    #        "${CMAKE_CURRENT_BINARY_DIR}/sheet.png"
-    #        ${output_files}
-    #)
+    add_custom_target(${ARG_TARGET}
+        COMMENT "running target to pack spritesheet"
+        DEPENDS
+            "${output_sheet_file_path}"
+            "${output_meta_file_path}"
+    )
 endfunction()
 
-resources(
-    CHARACTERS
-        hero.aseprite
-        hero-2.aseprite
+add_pack_spritesheet_target(
+    TARGET pack-spritesheet-target
+    MANIFEST manifest.yaml
+    OUTPUT_SHEET sheet.png
+    OUTPUT_META sheet-meta.yaml
 
-    TEXTURES
-        grass.aseprite
-        road.aseprite
-        grass-2.aseprite
-        bamboo-floor.aseprite
-        wooden-floor.aseprite
-        wooden-walls.aseprite
+    FILES
+        character characters/hero.aseprite
+        character characters/hero-2.aseprite
 
-    OBJECTS
-        ball.aseprite
-        enemy.aseprite
-        tree.aseprite
-        turret.aseprite
-        gate.aseprite
+        texture textures/grass.aseprite
+        texture textures/road.aseprite
+        texture textures/grass-2.aseprite
+        texture textures/bamboo-floor.aseprite
+        texture textures/wooden-floor.aseprite
+        texture textures/wooden-walls.aseprite
+
+        object objects/ball.aseprite
+        object objects/enemy.aseprite
+        object objects/tree.aseprite
+        object objects/turret.aseprite
+        object objects/gate.aseprite
 )
