@@ -1,4 +1,4 @@
-function(add_pack_spritesheet_target)
+function(pack_spritesheet)
     set(options "")
     set(oneValueArgs TARGET MANIFEST OUTPUT_SHEET OUTPUT_META)
     set(multiValueArgs FILES)
@@ -29,6 +29,7 @@ function(add_pack_spritesheet_target)
             --output-meta "${output_meta_file_path}"
         DEPENDS
             pack-spritesheet
+            aseprite
             "${manifest_file_path}"
             ${input_file_paths}
         OUTPUT
@@ -44,11 +45,52 @@ function(add_pack_spritesheet_target)
     )
 endfunction()
 
-add_pack_spritesheet_target(
+function(pack_music)
+    set(options "")
+    set(oneValueArgs TARGET OUTPUT_DIRECTORY)
+    set(multiValueArgs FILES)
+    cmake_parse_arguments(
+        ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    set(output_file_paths "")
+    foreach(relative_input_file_path ${ARG_FILES})
+        cmake_path(APPEND input_file_path
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+            "${relative_input_file_path}")
+        cmake_path(GET input_file_path STEM LAST_ONLY input_file_stem)
+        cmake_path(APPEND output_file_path
+            "${CMAKE_CURRENT_BINARY_DIR}"
+            "${ARG_OUTPUT_DIRECTORY}"
+            "${input_file_stem}.wav")
+
+        add_custom_command(
+            COMMENT "packing music"
+            COMMAND
+                "$<TARGET_FILE:lmms>"
+                render "${input_file_path}"
+                --loop
+                --output "${output_file_path}"
+            DEPENDS
+                lmms
+                "${input_file_path}"
+            OUTPUT
+                "${output_file_path}"
+        )
+        list(APPEND output_file_paths "${output_file_path}")
+    endforeach()
+
+    add_custom_target("${ARG_TARGET}"
+        COMMENT "running target to pack music"
+        DEPENDS
+            ${output_file_paths}
+    )
+endfunction()
+
+pack_spritesheet(
     TARGET pack-spritesheet-target
     MANIFEST manifest.yaml
-    OUTPUT_SHEET sheet.png
-    OUTPUT_META sheet-meta.yaml
+    OUTPUT_SHEET extracted/sheet/sheet.png
+    OUTPUT_META extracted/sheet/sheet-meta.yaml
 
     FILES
         character characters/hero.aseprite
@@ -66,4 +108,17 @@ add_pack_spritesheet_target(
         object objects/tree.aseprite
         object objects/turret.aseprite
         object objects/gate.aseprite
+)
+
+pack_music(
+    TARGET pack-music-target
+    OUTPUT_DIRECTORY extracted/music
+    FILES
+        music/happy-start.mmpz
+        music/slow.mmpz
+)
+
+file(CREATE_LINK
+    "${CMAKE_CURRENT_BINARY_DIR}/extracted"
+    "${PROJECT_SOURCE_DIR}/extracted" SYMBOLIC
 )

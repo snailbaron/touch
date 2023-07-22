@@ -3,6 +3,7 @@
 #include <yaml-cpp/yaml.h>
 
 #include <cstdlib>
+#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -12,11 +13,6 @@
 #include <vector>
 
 namespace fs = std::filesystem;
-
-class FakeLogger {};
-FakeLogger fakeLogger;
-
-FakeLogger operator<<(FakeLogger&, const auto&&) { return {}; }
 
 template <size_t N>
 auto split(const std::string& string, std::string_view separator)
@@ -129,7 +125,7 @@ void pack(const Paths& paths)
     output << yaml.c_str();
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char* argv[]) try
 {
     arg::helpKeys("-h", "--help");
     auto asepritePath = arg::option<fs::path>()
@@ -169,4 +165,7 @@ int main(int argc, char* argv[])
         .outputSheet = outputSheetPath,
         .outputMeta = outputMetaPath,
     });
+} catch (const std::exception& e) {
+    std::cerr << e.what() << "\n";
+    return EXIT_FAILURE;
 }
