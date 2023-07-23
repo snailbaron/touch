@@ -62,7 +62,7 @@ void pack(const Paths& paths)
         " --sheet " << paths.outputSheet <<
         " --sheet-type packed" <<
         " --filename-format '{path}:{title}:{tag}:{tagframe}'" <<
-        " --inner-padding 1";
+        " --shape-padding 0";
     for (const auto& inputFilePath : inputFilePaths) {
         command << " " << inputFilePath;
     }

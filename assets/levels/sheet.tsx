@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tileset version="1.10" tiledversion="1.10.1" name="tiles" tilewidth="32" tileheight="32" tilecount="50" columns="10">
- <image source="../sheet.png" trans="000000" width="320" height="128"/>
- <tile id="9">
+<tileset version="1.10" tiledversion="1.10.1" name="sheet" tilewidth="32" tileheight="32" tilecount="80" columns="10">
+ <image source="../../extracted/sheet/sheet.png" width="320" height="256"/>
+ <tile id="49">
   <animation>
-   <frame tileid="9" duration="300"/>
-   <frame tileid="19" duration="300"/>
+   <frame tileid="49" duration="300"/>
+   <frame tileid="48" duration="300"/>
   </animation>
  </tile>
  <wangsets>
