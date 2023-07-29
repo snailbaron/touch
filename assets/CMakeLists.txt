@@ -1,6 +1,6 @@
 function(pack_spritesheet)
     set(options "")
-    set(oneValueArgs TARGET MANIFEST OUTPUT_SHEET OUTPUT_META TOUCH)
+    set(oneValueArgs TARGET MANIFEST OUTPUT_SHEET OUTPUT_META OUTPUT_FILES TOUCH)
     set(multiValueArgs FILES)
     cmake_parse_arguments(
         ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -12,10 +12,36 @@ function(pack_spritesheet)
     file(WRITE "${manifest_file_path}" "")
 
     set(input_file_paths "")
+    set(output_timestamp_files "")
     while(NOT "${ARG_FILES}" STREQUAL "")
         list(POP_FRONT ARG_FILES type path)
         list(APPEND input_file_paths "${path}")
         file(APPEND "${manifest_file_path}" "- type: ${type}\n  path: \"${path}\"\n")
+
+        cmake_path(GET path STEM LAST_ONLY stem)
+        cmake_path(APPEND
+            input_file_path "${CMAKE_CURRENT_SOURCE_DIR}" "${path}")
+
+        add_custom_command(
+            COMMENT "unpacking "${path}" to individual files"
+            COMMAND
+                "$<TARGET_FILE:aseprite>"
+                --batch
+                "${input_file_path}"
+                --split-slices
+                --save-as "${CMAKE_CURRENT_BINARY_DIR}/${ARG_OUTPUT_FILES}/${stem}/${stem}.{tag}.{tagframe00}.{slice}.png"
+            COMMAND "${CMAKE_COMMAND}" -E
+                touch "${CMAKE_CURRENT_BINARY_DIR}/${ARG_TOUCH}"
+            COMMAND "${CMAKE_COMMAND}" -E
+                touch "${CMAKE_CURRENT_BINARY_DIR}/${ARG_OUTPUT_FILES}/${stem}/timestamp"
+            DEPENDS
+                aseprite
+                "${input_file_path}"
+            OUTPUT
+                "${CMAKE_CURRENT_BINARY_DIR}/${ARG_OUTPUT_FILES}/${stem}/timestamp"
+        )
+        list(APPEND output_timestamp_files
+            "${CMAKE_CURRENT_BINARY_DIR}/${ARG_OUTPUT_FILES}/${stem}/timestamp")
     endwhile()
 
     add_custom_command(
@@ -39,11 +65,12 @@ function(pack_spritesheet)
             "${output_meta_file_path}"
     )
 
-    add_custom_target(${ARG_TARGET}
+    add_custom_target(${ARG_TARGET} ALL
         COMMENT "running target to pack spritesheet"
         DEPENDS
             "${output_sheet_file_path}"
             "${output_meta_file_path}"
+            ${output_timestamp_files}
     )
 endfunction()
 
@@ -83,7 +110,7 @@ function(pack_music)
         list(APPEND output_file_paths "${output_file_path}")
     endforeach()
 
-    add_custom_target("${ARG_TARGET}"
+    add_custom_target("${ARG_TARGET}" ALL
         COMMENT "running target to pack music"
         DEPENDS
             ${output_file_paths}
@@ -106,13 +133,16 @@ function(pack_levels)
         cmake_path(APPEND output_file_path
             "${CMAKE_CURRENT_BINARY_DIR}"
             "${ARG_OUTPUT_DIRECTORY}"
+            "levels"
             "${stem}.json")
 
         add_custom_command(
             COMMENT "packing level ${level_file_relative_path}"
             COMMAND
                 "$<TARGET_FILE:tiled>"
-                --export-map "${level_file_path}" "${output_file_path}"
+                --export-map "${level_file_path}"
+                --detach-templates
+                "${output_file_path}"
             COMMAND "${CMAKE_COMMAND}" -E
                 touch "${CMAKE_CURRENT_BINARY_DIR}/${ARG_TOUCH}"
             DEPENDS
@@ -133,6 +163,7 @@ function(pack_levels)
         cmake_path(APPEND output_file_path
             "${CMAKE_CURRENT_BINARY_DIR}"
             "${ARG_OUTPUT_DIRECTORY}"
+            "tilesets"
             "${stem}.json")
 
         add_custom_command(
@@ -152,7 +183,7 @@ function(pack_levels)
         list(APPEND output_file_paths "${output_file_path}")
     endforeach()
 
-    add_custom_target("${ARG_TARGET}"
+    add_custom_target("${ARG_TARGET}" ALL
         COMMENT "running target to pack levels"
         DEPENDS
             ${output_file_paths})
@@ -163,6 +194,7 @@ pack_spritesheet(
     MANIFEST manifest.yaml
     OUTPUT_SHEET extracted/sheet/sheet.png
     OUTPUT_META extracted/sheet/sheet-meta.yaml
+    OUTPUT_FILES extracted/files
     TOUCH timestamp
 
     FILES
@@ -193,14 +225,15 @@ pack_music(
 
 pack_levels(
     TARGET pack-levels-target
-    OUTPUT_DIRECTORY extracted/levels
+    OUTPUT_DIRECTORY extracted
     TOUCH timestamp
 
     LEVELS
         levels/courtyard.tmx
         levels/room.tmx
     TILESETS
-        levels/sheet.tsx
+        levels/images.tsx
+        levels/objects.tsx
 )
 
 file(CREATE_LINK

@@ -18,7 +18,6 @@ endif()
 
 add_subdirectory(assets)
 
-# add_subdirectory(src/blob)
 # add_subdirectory(src/gfx)
 # add_subdirectory(src/touch)
 # add_subdirectory(src/extractor)
@@ -32,3 +31,4 @@ add_subdirectory(src/thing)
 add_subdirectory(src/ve)
 
 add_subdirectory(src/pack-spritesheet)
+add_subdirectory(src/blob)

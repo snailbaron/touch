@@ -14,35 +14,108 @@
 
 namespace blob {
 
-class Character {
+template <class T>
+class VectorIterator {
 public:
-    std::string_view name() const;
+    explicit VectorIterator(const T** ptr)
+        : _ptr(ptr)
+    { }
 
-    uint32_t frameCount(Speed speed, Direction direction) const;
-    const fb::Frame& frame(
-        Speed speed, Direction direction, uint32_t frameIndex) const;
+    VectorIterator& operator++()
+    {
+        ++_ptr;
+        return *this;
+    }
+
+    VectorIterator operator++(int)
+    {
+        auto old = *this;
+        ++_ptr;
+        return old;
+    }
+
+    VectorIterator& operator--()
+    {
+        --_ptr;
+        return *this;
+    }
+
+    VectorIterator operator--(int)
+    {
+        auto old = *this;
+        --_ptr;
+        return old;
+    }
+
+    T operator*() const
+    {
+        return *_ptr;
+    }
 
 private:
-    Character(const fb::Blob* fb, uint32_t index);
-
-    const fb::Blob* _fb = nullptr;
-    uint32_t _index = 0;
-
-    friend class Blob;
+    const T** _ptr = nullptr;
 };
 
-class NamedAnimation {
+template <class T>
+class VectorRange {
 public:
-    std::string_view name() const;
+    VectorRange(const flatbuffers::Vector<const T*>* fbVectorPtr)
+        : _fbVectorPtr(fbVectorPtr)
+    { }
 
-    uint32_t frameCount() const;
-    const fb::Frame& frame(uint32_t frameIndex) const;
+    VectorIterator<T> begin() const
+    {
+        return {_fbVectorPtr->data()};
+    }
+
+    VectorIterator<T> end() const
+    {
+        return {_fbVectorPtr->data() + _fbVectorPtr->size()};
+    }
+
+    size_t size() const
+    {
+        return _fbVectorPtr->size();
+    }
 
 private:
-    NamedAnimation(const fb::Blob* fb, uint32_t index);
+    const flatbuffers::Vector<const T*>* _fbVectorPtr = nullptr;
+};
 
-    const fb::Blob* _fb = nullptr;
-    uint32_t _index = 0;
+using Frame = fb::Frame;
+using MovementDirection = fb::MovementDirection;
+using MovementSpeed = fb::MovementSpeed;
+using ObjectType = fb::ObjectType;
+using Portal = fb::Portal;
+using Position = fb::Position;
+using SimpleObject = fb::SimpleObject;
+using Turret = fb::Turret;
+
+class Animation {
+public:
+    constexpr Animation(const fb::Animation* fb) : _fb(fb) {}
+
+    std::string_view name() const { return _fb->name()->string_view(); }
+    VectorRange<fb::Frame> frames() const { return _fb->frames(); }
+
+private:
+    const fb::Animation* _fb = nullptr;
+};
+
+class CharacterAnimations {
+public:
+    Animation move(MovementDirection direction, MovementSpeed speed);
+    Animation swing(MovementDirection direction);
+
+private:
+    explicit CharacterAnimations(
+        const fb::CharacterAnimations* characterAnimations,
+        const flatbuffers::Vector<
+            flatbuffers::Offset<fb::Animation>>* animations);
+
+    const fb::CharacterAnimations* _characterAnimations = nullptr;
+    const flatbuffers::Vector<
+        flatbuffers::Offset<fb::Animation>>* _animations = nullptr;
 
     friend class Blob;
 };
@@ -52,15 +125,7 @@ public:
     explicit Blob(const std::filesystem::path& blobFile);
 
     std::span<const std::byte> sheet() const;
-
-    uint32_t characterCount() const;
-    Character character(uint32_t index) const;
-
-    uint32_t textureCount() const;
-    NamedAnimation texture(uint32_t index) const;
-
-    uint32_t objectCount() const;
-    NamedAnimation object(uint32_t index) const;
+    CharacterAnimations heroAnimations() const;
 
 private:
     fi::MemoryMappedFile _map;

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+ <tileset firstgid="1" source="objects.tsx"/>
+ <object name="turret" gid="4" width="32" height="32">
+  <properties>
+   <property name="ammo_capacity" type="int" value="3"/>
+   <property name="bullet_speed" type="float" value="4"/>
+   <property name="proximity" type="float" value="3"/>
+   <property name="reload_time" type="float" value="2"/>
+   <property name="time_between_shots" type="float" value="0.5"/>
+  </properties>
+ </object>
+</template>

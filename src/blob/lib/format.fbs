@@ -1,25 +1,115 @@
 namespace blob.fb;
 
+struct Position {
+  x:float;
+  y:float;
+}
+
 struct Frame {
-  x:uint32;
-  y:uint32;
-  w:uint32;
-  h:uint32;
-  ms:uint32;
+  x:uint16;
+  y:uint16;
+  w:uint16;
+  h:uint16;
+  ms:uint16;
+}
+
+table Animation {
+  name:string;
+  frames:[Frame];
+}
+
+enum ObjectType : uint16 {
+  Hero,
+  Tree,
+  Turret,
+}
+
+struct SimpleObject {
+  position:Position;
+  type:ObjectType;
+}
+
+struct Portal {
+  position:Position;
+  target_map:uint16;
+  target_position:Position;
+}
+
+struct Turret {
+  position:Position;
+  bullet_speed:float;
+  ammo_capacity:uint8;
+  time_between_shots:float;
+  reload_time:float;
+  proximity:float;
+}
+
+table Objects {
+  simple:[SimpleObject];
+  turrets:[Turret];
+  portals:[Portal];
+}
+
+enum GroundType : uint8 {
+  Grass,
+  Road,
+}
+
+table Tile {
+  ground_type:GroundType;
+  animation_stack:[uint16];
+}
+
+table TileLayer {
+  animation_indices:[uint16];
+}
+
+table Map {
+  name:string;
+  tile_layers:[TileLayer];
+  objects:Objects;
+}
+
+enum MovementDirection : uint8 {
+  Up,
+  UpRight,
+  Right,
+  DownRight,
+  Down,
+  DownLeft,
+  Left,
+  UpLeft,
+}
+
+enum MovementSpeed : uint8 {
+  Stand,
+  Walk,
+  Run,
+}
+
+struct DirectionalAnimationSet {
+  up:uint16;
+  up_right:uint16;
+  right:uint16;
+  down_right:uint16;
+  down:uint16;
+  down_left:uint16;
+  left:uint16;
+  up_left:uint16;
+}
+
+struct CharacterAnimations {
+  stand:DirectionalAnimationSet;
+  walk:DirectionalAnimationSet;
+  run:DirectionalAnimationSet;
+  swing:DirectionalAnimationSet;
 }
 
 table Blob {
   sheet:[uint8];
-
-  names:string;
-  name_offsets:[uint32];
-
-  frames:[Frame];
-  frame_offsets:[uint32];
-
-  character_count:uint32;
-  texture_count:uint32;
-  object_count:uint32;
+  animations:[Animation];
+  heroAnimations:CharacterAnimations;
+  maps:[Map];
 }
 
 root_type Blob;

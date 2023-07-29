@@ -1,69 +1,80 @@
 #include <blob/blob.hpp>
 
 #include <iostream>
+#include <stdexcept>
 #include <tuple>
 
 namespace blob {
 
-namespace {
-
-std::tuple<uint32_t, uint32_t> range(
-    const flatbuffers::Vector<uint32_t>* offsets, uint32_t index)
-{
-    return {offsets->Get(index), offsets->Get(index + 1)};
-}
-
-} // namespace
-
-Character::Character(const fb::Blob* fb, uint32_t index)
-    : _fb(fb)
-    , _index(index)
+CharacterAnimations::CharacterAnimations(
+    const fb::CharacterAnimations* characterAnimations,
+    const flatbuffers::Vector<flatbuffers::Offset<fb::Animation>>* animations)
+    : _characterAnimations(characterAnimations)
+    , _animations(animations)
 { }
 
-std::string_view Character::name() const
+Animation CharacterAnimations::move(
+    MovementDirection direction, MovementSpeed speed)
 {
-    auto [begin, end] = range(_fb->name_offsets(), _index);
-    return _fb->names()->string_view().substr(begin, end - begin);
+    const fb::DirectionalAnimationSet* directionalSet = nullptr;
+    switch (speed) {
+        case MovementSpeed::Stand:
+            directionalSet = &_characterAnimations->stand();
+            break;
+        case MovementSpeed::Walk:
+            directionalSet = &_characterAnimations->walk();
+            break;
+        case MovementSpeed::Run:
+            directionalSet = &_characterAnimations->run();
+            break;
+    }
+    if (!directionalSet) {
+        throw std::runtime_error{
+            "unknown speed: " + std::to_string((int)speed)};
+    }
+
+    switch (direction) {
+        case MovementDirection::Up:
+            return _animations->Get(directionalSet->up());
+        case MovementDirection::UpRight:
+            return _animations->Get(directionalSet->up_right());
+        case MovementDirection::Right:
+            return _animations->Get(directionalSet->right());
+        case MovementDirection::DownRight:
+            return _animations->Get(directionalSet->down_right());
+        case MovementDirection::Down:
+            return _animations->Get(directionalSet->down());
+        case MovementDirection::DownLeft:
+            return _animations->Get(directionalSet->down_left());
+        case MovementDirection::Left:
+            return _animations->Get(directionalSet->left());
+        case MovementDirection::UpLeft:
+            return _animations->Get(directionalSet->up_left());
+    }
+    throw std::runtime_error{
+        "unknown direction: " + std::to_string((int)direction)};
 }
 
-uint32_t Character::frameCount(Speed speed, Direction direction) const
+Animation CharacterAnimations::swing(MovementDirection direction)
 {
-    uint32_t offset = (int)speed * 4 + (int)direction;
-    auto [begin, end] = range(_fb->frame_offsets(), _index * 12 + offset);
-    return end - begin;
-}
-
-const fb::Frame& Character::frame(
-    Speed speed, Direction direction, uint32_t frameIndex) const
-{
-    uint32_t offset = (int)speed * 4 + (int)direction;
-    uint32_t startFrame = _fb->frame_offsets()->Get(_index * 12 + offset);
-    return *_fb->frames()->Get(startFrame + frameIndex);
-}
-
-NamedAnimation::NamedAnimation(const fb::Blob* fb, uint32_t index)
-    : _fb(fb)
-    , _index(index)
-{ }
-
-std::string_view NamedAnimation::name() const
-{
-    auto [begin, end] = range(_fb->name_offsets(), _index);
-    return _fb->names()->string_view().substr(begin, end - begin);
-}
-
-uint32_t NamedAnimation::frameCount() const
-{
-    auto animationIndex = _index + 11 * _fb->character_count();
-    auto [begin, end] = range(_fb->frame_offsets(), animationIndex);
-    return end - begin;
-}
-
-const fb::Frame& NamedAnimation::frame(uint32_t frameIndex) const
-{
-    auto animationIndex = _index + 11 * _fb->character_count();
-    auto startFrame = _fb->frame_offsets()->Get(animationIndex);
-    return *_fb->frames()->Get(startFrame + frameIndex);
+    switch (direction) {
+        case MovementDirection::Up:
+            return _animations->Get(_characterAnimations->swing().up());
+        case MovementDirection::UpRight:
+            return _animations->Get(_characterAnimations->swing().up_right());
+        case MovementDirection::Right:
+            return _animations->Get(_characterAnimations->swing().right());
+        case MovementDirection::DownRight:
+            return _animations->Get(_characterAnimations->swing().down_right());
+        case MovementDirection::Down:
+            return _animations->Get(_characterAnimations->swing().down());
+        case MovementDirection::DownLeft:
+            return _animations->Get(_characterAnimations->swing().down_left());
+        case MovementDirection::Left:
+            return _animations->Get(_characterAnimations->swing().left());
+        case MovementDirection::UpLeft:
+            return _animations->Get(_characterAnimations->swing().up_left());
+    }
 }
 
 Blob::Blob(const std::filesystem::path& blobFile)
@@ -73,42 +84,15 @@ Blob::Blob(const std::filesystem::path& blobFile)
 
 std::span<const std::byte> Blob::sheet() const
 {
-    std::cout << "sheet size: " << _fb->sheet()->size() << "\n";
     return {
         reinterpret_cast<const std::byte*>(_fb->sheet()->data()),
         _fb->sheet()->size()
     };
 }
 
-uint32_t Blob::characterCount() const
+CharacterAnimations Blob::heroAnimations() const
 {
-    return _fb->character_count();
-}
-
-Character Blob::character(uint32_t index) const
-{
-    return Character{_fb, index};
-}
-
-uint32_t Blob::textureCount() const
-{
-    return _fb->texture_count();
-}
-
-NamedAnimation Blob::texture(uint32_t index) const
-{
-    return NamedAnimation{_fb, _fb->character_count() + index};
-}
-
-uint32_t Blob::objectCount() const
-{
-    return _fb->object_count();
-}
-
-NamedAnimation Blob::object(uint32_t index) const
-{
-    return NamedAnimation{
-        _fb, _fb->character_count() + _fb->texture_count() + index};
+    return CharacterAnimations{_fb->heroAnimations(), _fb->animations()};
 }
 
 } // namespace blob
